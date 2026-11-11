@@ -8,7 +8,7 @@ logger = logging.getLogger("xiaozhi-music-resolver")
 mcp = FastMCP("xiaozhi-music-resolver")
 
 def get_youtube_audio(query: str) -> dict:
-    """Searches YouTube and returns a direct playable audio stream URL using cookies."""
+    """Searches YouTube and returns a playable stream payload."""
     ydl_opts = {
         'format': 'best/bestaudio',
         'noplaylist': True,
@@ -34,15 +34,19 @@ def get_youtube_audio(query: str) -> dict:
                             break
                             
                 title = top.get("title", query)
+                final_url = stream_url or top.get("webpage_url")
+                
                 return {
                     "status": "success",
-                    "url": stream_url or top.get("webpage_url"),
+                    "url": final_url,
+                    "audio_url": final_url,
                     "title": title,
                     "artist": top.get("uploader", "YouTube"),
-                    "message": f"Now playing {title}"
+                    "action": "play",
+                    "message": f"Playing {title}"
                 }
     except Exception as e:
-        logger.error(f"YouTube extraction error: {e}")
+        logger.error(f"Extraction error: {e}")
     
     return {"status": "error", "message": f"Could not find audio stream for: {query}"}
 
