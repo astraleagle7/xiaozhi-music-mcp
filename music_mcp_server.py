@@ -12,8 +12,14 @@ mcp = FastMCP("xiaozhi-music-resolver")
 
 COOKIE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cookies.txt")
 
+# Optional: load cookies from a Railway variable named COOKIES_TXT
+if os.environ.get("COOKIES_TXT") and not os.path.isfile(COOKIE_FILE):
+    with open(COOKIE_FILE, "w") as f:
+        f.write(os.environ["COOKIES_TXT"])
+
 BASE_OPTS = {
-    "format": "ba[protocol^=http]/ba/b",
+    # Prefer plain MP3 over HTTP: easiest for ESP32 players
+    "format": "ba[ext=mp3][protocol^=http]/ba[protocol^=http]/ba/b",
     "noplaylist": True,
     "quiet": True,
     "no_warnings": True,
@@ -23,12 +29,10 @@ BASE_OPTS = {
 
 def soundcloud_resolve(search_term: str):
     """Search SoundCloud, then try each result until one is actually playable."""
-    # Step 1: get a list of candidate track pages (fast, no stream extraction)
     with yt_dlp.YoutubeDL({**BASE_OPTS, "extract_flat": True}) as ydl:
         results = ydl.extract_info(f"scsearch8:{search_term}", download=False)
     candidates = [e for e in (results.get("entries") or []) if e and e.get("url")]
 
-    # Step 2: try each candidate, skipping DRM / previews / failures
     for entry in candidates:
         try:
             with yt_dlp.YoutubeDL(BASE_OPTS) as ydl:
@@ -66,6 +70,7 @@ def resolve_music_url(query: str, artist: str = "") -> dict:
             top = fn(search_term)
             if top and top.get("url"):
                 logger.info(f"Found via {name}: {top.get('title')}")
+                logger.info(f"Stream URL: {top['url']}")
                 break
         except Exception as e:
             last_error = e
@@ -77,7 +82,7 @@ def resolve_music_url(query: str, artist: str = "") -> dict:
             "message": str(last_error) if last_error else f"No playable result for '{search_term}'",
         }
 
-            return {
+    return {
         "status": "success",
         "command": "play",
         "audio_url": top["url"],
@@ -86,6 +91,7 @@ def resolve_music_url(query: str, artist: str = "") -> dict:
         "artist": top.get("uploader", "Unknown"),
         "type": "audio",
     }
-        
+
+
 if __name__ == "__main__":
     mcp.run(transport="stdio")
