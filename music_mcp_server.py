@@ -32,18 +32,20 @@ def resolve_music_url(query: str, artist: str = "") -> dict:
                 
                 media_url = f"https://www.youtube.com/watch?v={vid_id}" if vid_id else top.get('url', '')
                 
+                # Hardcoded hardware interception payload
                 return {
-                    "status": "success",
-                    "url": media_url,
+                    "type": "audio",
+                    "command": "play",
+                    "action": "play_music",
                     "audio_url": media_url,
+                    "url": media_url,
                     "title": title,
-                    "artist": top.get("uploader", "YouTube"),
-                    "type": "audio"
+                    "status": "success"
                 }
     except Exception as e:
         logger.error(f"Extraction error: {e}")
         
-    return {"status": "error", "message": f"Could not find audio stream for: {search_term}"}
+    return {"type": "error", "status": "error", "message": f"Could not find audio stream for: {search_term}"}
 
 if __name__ == "__main__":
     mcp.run()
