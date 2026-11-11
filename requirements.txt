@@ -9,3 +9,5 @@ Pillow>=10.4.0,<13
 pypinyin>=0.55.0,<1
 yt-dlp
 youtube-search-python
+fastmcp
+websockets
