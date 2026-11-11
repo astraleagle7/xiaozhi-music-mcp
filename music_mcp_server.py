@@ -7,15 +7,15 @@ logger = logging.getLogger("xiaozhi-music-resolver")
 
 mcp = FastMCP("xiaozhi-music-resolver")
 
-def get_youtube_audio(query: str) -> dict:
-    """Extracts a reliable stream URL using safe URL extraction."""
+def get_youtube_audio(query: str) -> str:
+    """Extracts a reliable stream URL and returns a command string for the agent."""
     ydl_opts = {
         'noplaylist': True,
         'quiet': True,
         'no_warnings': True,
         'cookiefile': 'cookies.txt',
         'default_search': 'ytsearch1:',
-        'extract_flat': True, # Avoids complex format parsing entirely
+        'extract_flat': True,
     }
     
     try:
@@ -24,8 +24,7 @@ def get_youtube_audio(query: str) -> dict:
             info = ydl.extract_info(query, download=False)
             entries = info.get('entries', [info])
             if entries and len(entries) > 0:
-                top = entries.get(0) if isinstance(entries, dict) else entries[0]
-                
+                top = entries[0]
                 vid_id = top.get('id')
                 title = top.get('title', query)
                 
@@ -34,22 +33,15 @@ def get_youtube_audio(query: str) -> dict:
                 else:
                     direct_url = top.get('url') or f"https://www.youtube.com/results?search_query={query}"
 
-                return {
-                    "status": "success",
-                    "url": direct_url,
-                    "audio_url": direct_url,
-                    "title": title,
-                    "artist": top.get("uploader", "YouTube"),
-                    "action": "play",
-                    "message": f"Playing {title}"
-                }
+                # Returns an explicit instruction string for the LLM
+                return f"PLAY_URL: {direct_url} | TITLE: {title}"
     except Exception as e:
-      logger.error(f"Extraction failed: {e}")
+        logger.error(f"Extraction failed: {e}")
 
-    return {"status": "error", "message": f"Could not find audio stream for: {query}"}
+    return "ERROR: Could not find audio stream."
 
 @mcp.tool()
-async def resolve_music_url(query: str, artist: str = "") -> dict:
+async def resolve_music_url(query: str, artist: str = "") -> str:
     """Resolves music requests by returning playable YouTube audio streams."""
     search_term = f"{artist} {query}".strip()
     return get_youtube_audio(search_term)
