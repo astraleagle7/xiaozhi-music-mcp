@@ -8,9 +8,10 @@ logger = logging.getLogger("xiaozhi-music-resolver")
 mcp = FastMCP("xiaozhi-music-resolver")
 
 def get_youtube_audio(query: str) -> dict:
-    """Searches YouTube and returns a playable stream payload."""
+    """Extracts a direct playable URL without requiring ffmpeg merging."""
     ydl_opts = {
-        'format': 'best/bestaudio',
+        # Format 18 (360p MP4) and Format 22 (720p MP4) always contain pre-merged audio streams.
+        'format': '18/22/best',
         'noplaylist': True,
         'quiet': True,
         'no_warnings': True,
@@ -26,6 +27,7 @@ def get_youtube_audio(query: str) -> dict:
             if entries and len(entries) > 0:
                 top = entries[0]
                 
+                # Retrieve the direct CDN stream URL
                 stream_url = top.get("url")
                 if not stream_url and 'formats' in top:
                     for f in top['formats']:
