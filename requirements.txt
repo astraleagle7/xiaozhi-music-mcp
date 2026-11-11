@@ -11,3 +11,5 @@ yt-dlp
 youtube-search-python
 fastmcp
 websockets
+uvicorn
+fastapi
