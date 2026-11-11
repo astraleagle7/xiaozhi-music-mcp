@@ -8,43 +8,47 @@ logger = logging.getLogger("xiaozhi-music-resolver")
 mcp = FastMCP("xiaozhi-music-resolver")
 
 def get_youtube_audio(query: str) -> dict:
-    """Extracts stream URL and formats response for hardware player ingestion."""
+    """Extracts a direct playable audio stream URL for hardware ingestion."""
     ydl_opts = {
+        'format': 'bestaudio/best',
         'noplaylist': True,
         'quiet': True,
         'no_warnings': True,
         'cookiefile': 'cookies.txt',
         'default_search': 'ytsearch1:',
-        'extract_flat': True,
     }
     
     try:
-        logger.info(f"Resolving stream for query: {query}")
+        logger.info(f"Resolving audio stream for: {query}")
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(query, download=False)
             entries = info.get('entries', [info])
             if entries and len(entries) > 0:
                 top = entries[0]
-                vid_id = top.get('id')
-                title = top.get('title', query)
                 
-                if vid_id:
-                    direct_url = f"https://www.youtube.com/watch?v={vid_id}"
-                else:
-                    direct_url = top.get('url') or f"https://www.youtube.com/results?search_query={query}"
-
-                # Explicitly structured keys for hardware player compatibility
+                # Extract direct stream URL
+                stream_url = top.get("url")
+                if not stream_url and 'formats' in top:
+                    for f in top['formats']:
+                        if f.get('url') and f.get('acodec') != 'none':
+                            stream_url = f.get('url')
+                            break
+                            
+                title = top.get("title", query)
+                final_url = stream_url or top.get("webpage_url")
+                
                 return {
-                    "type": "audio",
-                    "audio_url": direct_url,
-                    "url": direct_url,
+                    "status": "success",
+                    "url": final_url,
+                    "audio_url": final_url,
                     "title": title,
-                    "command": "play"
+                    "artist": top.get("uploader", "YouTube"),
+                    "type": "audio"
                 }
     except Exception as e:
-        logger.error(f"Extraction failed: {e}")
-
-    return {"type": "error", "message": "Could not find audio stream."}
+        logger.error(f"Extraction error: {e}")
+    
+    return {"status": "error", "message": f"Could not find audio stream for: {query}"}
 
 @mcp.tool()
 async def resolve_music_url(query: str, artist: str = "") -> dict:
