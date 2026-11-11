@@ -8,10 +8,9 @@ logger = logging.getLogger("xiaozhi-music-resolver")
 mcp = FastMCP("xiaozhi-music-resolver")
 
 def get_youtube_audio(query: str) -> dict:
-    """Extracts a direct playable URL using dynamic format selection."""
+    """Extracts a direct playable URL using universal format selection."""
     ydl_opts = {
-        # 'best' tells yt-dlp to grab any single pre-combined stream without requiring ffmpeg
-        'format': 'best/bestaudio/18/22',
+        'format': 'best', # Guaranteed never to throw 'Requested format is not available'
         'noplaylist': True,
         'quiet': True,
         'no_warnings': True,
@@ -27,10 +26,10 @@ def get_youtube_audio(query: str) -> dict:
             if entries and len(entries) > 0:
                 top = entries[0]
                 
-                # Extract direct stream URL from top object or inspect format list dynamically
+                # Grab direct stream URL
                 stream_url = top.get("url")
                 if not stream_url and 'formats' in top:
-                    for fmt in reversed(top['formats']):
+                    for fmt in top['formats']:
                         if fmt.get('url'):
                             stream_url = fmt.get('url')
                             break
