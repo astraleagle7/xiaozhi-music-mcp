@@ -50,3 +50,12 @@ if __name__ == "__main__":
 # Keeps the evnet loop running indefinitely to listen for Xiaozhi Commands
 import asyncio
 asyncio.run(main())
+
+import os
+import uvicorn
+
+if __name__ == "__main__":
+    # Railway assigns a dynamic PORT environment variable; fallback to 8000
+    port = int(os.environ.get("PORT", 8000))
+    # Bind to 0.0.0.0 so external connections and Railway health checks can reach it
+    uvicorn.run(mcp.app, host="0.0.0.0", port=port)
