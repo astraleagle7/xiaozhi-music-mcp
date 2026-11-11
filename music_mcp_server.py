@@ -77,16 +77,15 @@ def resolve_music_url(query: str, artist: str = "") -> dict:
             "message": str(last_error) if last_error else f"No playable result for '{search_term}'",
         }
 
-        return {
+            return {
         "status": "success",
-        "message": f"Now playing '{top.get('title', search_term)}'. Do NOT read out or mention any URL. Just say you're playing the song.",
-        "url": top["url"],
+        "command": "play",
         "audio_url": top["url"],
+        "url": top["url"],
         "title": top.get("title", search_term),
         "artist": top.get("uploader", "Unknown"),
         "type": "audio",
     }
-
-
+        
 if __name__ == "__main__":
     mcp.run(transport="stdio")
