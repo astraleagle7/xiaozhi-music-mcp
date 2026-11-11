@@ -1,45 +1,62 @@
 import os
+import sys
+import asyncio
 import logging
-import yt_dlp
-from fastmcp import FastMCP
+import subprocess
+import websockets
 
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("xiaozhi-music-resolver")
+logger = logging.getLogger("MCP_PIPE")
 
-mcp = FastMCP("xiaozhi-music-resolver")
+async def run_pipe():
+    uri = os.environ.get("MCP_ENDPOINT")
+    if not uri:
+        logger.error("Error: MCP_ENDPOINT environment variable is not set!")
+        sys.exit(1)
 
-def get_youtube_audio(query: str) -> dict:
-    """Searches YouTube and returns a direct audio stream URL."""
-    ydl_opts = {
-        'format': 'bestaudio/best',
-        'noplaylist': True,
-        'quiet': True,
-        'no_warnings': True,
-        'default_search': 'ytsearch1:',
-    }
-    try:
-        logger.info(f"Searching YouTube for: {query}")
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(query, download=False)
-            entries = info.get('entries', [info])
-            if entries and len(entries) > 0:
-                top = entries[0]
-                return {
-                    "status": "success",
-                    "url": top.get("url"),
-                    "title": top.get("title", query),
-                    "artist": top.get("uploader", "YouTube"),
-                }
-    except Exception as e:
-        logger.error(f"YouTube extraction error: {e}")
-    
-    return {"status": "error", "message": f"Could not find audio stream for: {query}"}
+    while True:
+        try:
+            logger.info("Connecting to Xiaozhi MCP endpoint...")
+            async with websockets.connect(uri) as websocket:
+                logger.info("Successfully connected to Xiaozhi cloud WebSocket!")
 
-@mcp.tool()
-async def resolve_music_url(query: str, artist: str = "") -> dict:
-    """Resolves music requests by returning playable YouTube audio streams."""
-    search_term = f"{artist} {query}".strip()
-    return get_youtube_audio(search_term)
+                cmd = [sys.executable, "music_mcp_server.py"]
+                process = subprocess.Popen(
+                    cmd,
+                    stdin=subprocess.PIPE,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    bufsize=1
+                )
+                logger.info("Started local music MCP server subprocess.")
+
+                async def ws_to_proc():
+                    async for message in websocket:
+                        process.stdin.write(message + "\n")
+                        process.stdin.flush()
+
+                async def proc_to_ws():
+                    while True:
+                        line = await asyncio.to_thread(process.stdout.readline)
+                        if not line:
+                            break
+                        await websocket.send(line.strip())
+
+                async def stderr_to_log():
+                    while True:
+                        err = await asyncio.to_thread(process.stderr.readline)
+                        if not err:
+                            break
+                        logger.error(f"[Server Error] {err.strip()}")
+
+                await asyncio.gather(ws_to_proc(), proc_to_ws(), stderr_to_log())
+
+        except Exception as e:
+            logger.warning(f"Connection dropped: {e}. Reconnecting in 5 seconds...")
+            await asyncio.sleep(5)
 
 if __name__ == "__main__":
-    mcp.run()
+    asyncio.run(run_pipe())
+
+
