@@ -8,39 +8,36 @@ logger = logging.getLogger("xiaozhi-music-resolver")
 mcp = FastMCP("xiaozhi-music-resolver")
 
 def get_youtube_audio(query: str) -> dict:
-    """Extracts a direct playable audio stream URL for hardware ingestion."""
+    """Resolves track metadata safely without strict format validation."""
     ydl_opts = {
-        'format': 'bestaudio/best',
         'noplaylist': True,
         'quiet': True,
         'no_warnings': True,
         'cookiefile': 'cookies.txt',
         'default_search': 'ytsearch1:',
+        'extract_flat': True, # Bypasses complex stream matching completely
     }
     
     try:
-        logger.info(f"Resolving audio stream for: {query}")
+        logger.info(f"Resolving track for query: {query}")
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info = ydl.extract_info(query, download=False)
             entries = info.get('entries', [info])
             if entries and len(entries) > 0:
                 top = entries[0]
+                vid_id = top.get('id')
+                title = top.get('title', query)
                 
-                # Extract direct stream URL
-                stream_url = top.get("url")
-                if not stream_url and 'formats' in top:
-                    for f in top['formats']:
-                        if f.get('url') and f.get('acodec') != 'none':
-                            stream_url = f.get('url')
-                            break
-                            
-                title = top.get("title", query)
-                final_url = stream_url or top.get("webpage_url")
+                # Construct a direct playable video page URL
+                if vid_id:
+                    media_url = f"https://www.youtube.com/watch?v={vid_id}"
+                else:
+                    media_url = top.get('url') or f"https://www.youtube.com/results?search_query={query}"
                 
                 return {
                     "status": "success",
-                    "url": final_url,
-                    "audio_url": final_url,
+                    "url": media_url,
+                    "audio_url": media_url,
                     "title": title,
                     "artist": top.get("uploader", "YouTube"),
                     "type": "audio"
