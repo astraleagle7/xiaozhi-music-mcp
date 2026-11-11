@@ -7,8 +7,8 @@ logger = logging.getLogger("xiaozhi-music-resolver")
 
 mcp = FastMCP("xiaozhi-music-resolver")
 
-def get_youtube_audio(query: str) -> str:
-    """Extracts a reliable stream URL and returns a command string for the agent."""
+def get_youtube_audio(query: str) -> dict:
+    """Extracts stream URL and formats response for hardware player ingestion."""
     ydl_opts = {
         'noplaylist': True,
         'quiet': True,
@@ -33,15 +33,21 @@ def get_youtube_audio(query: str) -> str:
                 else:
                     direct_url = top.get('url') or f"https://www.youtube.com/results?search_query={query}"
 
-                # Returns an explicit instruction string for the LLM
-                return f"PLAY_URL: {direct_url} | TITLE: {title}"
+                # Explicitly structured keys for hardware player compatibility
+                return {
+                    "type": "audio",
+                    "audio_url": direct_url,
+                    "url": direct_url,
+                    "title": title,
+                    "command": "play"
+                }
     except Exception as e:
         logger.error(f"Extraction failed: {e}")
 
-    return "ERROR: Could not find audio stream."
+    return {"type": "error", "message": "Could not find audio stream."}
 
 @mcp.tool()
-async def resolve_music_url(query: str, artist: str = "") -> str:
+async def resolve_music_url(query: str, artist: str = "") -> dict:
     """Resolves music requests by returning playable YouTube audio streams."""
     search_term = f"{artist} {query}".strip()
     return get_youtube_audio(search_term)
