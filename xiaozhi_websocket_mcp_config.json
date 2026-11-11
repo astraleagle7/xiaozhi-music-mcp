@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "transport": {
     "type": "websocket",
-    "endpoint_url": "ws://localhost:8765"
+    "endpoint_url": "wss://api.xiaozhi.me/mcp/?token=eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjExMTc3NzgsImFnZW50SWQiOjI1OTMxNzcsImVuZHBvaW50SWQiOiJhZ2VudF8yNTkzMTc3IiwicHVycG9zZSI6Im1jcC1lbmRwb2ludCIsImlhdCI6MTc5NDM4Nzg4OSwiZXhwIjoxODI1OTQ1NDg5fQ.BfwveeCyRmIuZQzv3sOvlvtUSd7mIFiN8kPjmNla8Lvv1fxxFZeY1AdKfH0b85AUXLsLMr7sfPbWzH1092IcaQ"
   },
   "tools": [
     {
