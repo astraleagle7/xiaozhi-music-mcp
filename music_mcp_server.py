@@ -14,6 +14,7 @@ def get_youtube_audio(query: str) -> dict:
         'noplaylist': True,
         'quiet': True,
         'no_warnings': True,
+        'cookiefile': 'cookie.txt', # <---- Add this line
         'default_search': 'ytsearch1:',
     }
     try:
