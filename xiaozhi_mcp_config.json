@@ -11,7 +11,7 @@
   },
   "tools": [
     {
-      "name": "search_music",
+      "name": "resolve_music_url",
       "description": "搜索音乐",
       "inputSchema": {
         "type": "object",
