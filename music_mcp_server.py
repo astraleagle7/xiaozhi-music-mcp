@@ -1,7 +1,6 @@
-import os
 import logging
-import yt_dlp
 from fastmcp import FastMCP
+import yt_dlp
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("xiaozhi-music-resolver")
@@ -32,7 +31,7 @@ def get_youtube_audio(query: str) -> dict:
                 }
     except Exception as e:
         logger.error(f"YouTube extraction error: {e}")
-    
+
     return {"status": "error", "message": f"Could not find audio stream for: {query}"}
 
 @mcp.tool()
@@ -43,3 +42,4 @@ async def resolve_music_url(query: str, artist: str = "") -> dict:
 
 if __name__ == "__main__":
     mcp.run()
+
