@@ -14,9 +14,9 @@ mcp = FastMCP("xiaozhi-music-resolver")
 COOKIE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cookies.txt")
 
 
-def extract(search_term: str, use_cookies: bool):
+def extract(search_term: str, source: str, use_cookies: bool):
     ydl_opts = {
-        "format": "ba/b",  # any audio, or any format as a last resort
+        "format": "ba[protocol^=http]/ba/b",
         "noplaylist": True,
         "quiet": True,
         "no_warnings": True,
@@ -26,44 +26,41 @@ def extract(search_term: str, use_cookies: bool):
         ydl_opts["cookiefile"] = COOKIE_FILE
 
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(f"ytsearch1:{search_term}", download=False)
+        info = ydl.extract_info(f"{source}:{search_term}", download=False)
         entries = info.get("entries") or [info]
         return entries[0] if entries else None
 
 
 @mcp.tool()
 def resolve_music_url(query: str, artist: str = "") -> dict:
-    """Search YouTube for a song and return a direct, playable audio stream URL."""
+    """Search for a song and return a direct, playable audio stream URL."""
     search_term = f"{artist} {query}".strip()
     logger.info(f"Resolving track for query: {search_term}")
 
-    top = None
     last_error = None
+    # SoundCloud first (works from servers), then YouTube as a fallback
+    attempts = [("scsearch1", False), ("ytsearch1", True), ("ytsearch1", False)]
 
-    # Try with cookies first, then without (bad cookies can break extraction)
-    for use_cookies in (True, False):
+    for source, use_cookies in attempts:
         try:
-            top = extract(search_term, use_cookies)
+            top = extract(search_term, source, use_cookies)
             if top and top.get("url"):
-                break
+                return {
+                    "status": "success",
+                    "url": top["url"],
+                    "audio_url": top["url"],
+                    "title": top.get("title", search_term),
+                    "artist": top.get("uploader", "Unknown"),
+                    "duration": top.get("duration"),
+                    "type": "audio",
+                }
         except Exception as e:
             last_error = e
-            logger.error(f"Extraction error (cookies={use_cookies}): {e}")
-
-    if not top or not top.get("url"):
-        return {
-            "status": "error",
-            "message": str(last_error) if last_error else f"No results for '{search_term}'",
-        }
+            logger.error(f"{source} failed (cookies={use_cookies}): {e}")
 
     return {
-        "status": "success",
-        "url": top["url"],
-        "audio_url": top["url"],
-        "title": top.get("title", search_term),
-        "artist": top.get("uploader", "YouTube"),
-        "duration": top.get("duration"),
-        "type": "audio",
+        "status": "error",
+        "message": str(last_error) if last_error else f"No results for '{search_term}'",
     }
 
 
