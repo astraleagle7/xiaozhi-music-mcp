@@ -45,3 +45,8 @@ async def resolve_music_url(query: str, artist: str = "") -> dict:
 
 if __name__ == "__main__":
     mcp.run()
+
+if __name__ == "__main__":
+# Keeps the evnet loop running indefinitely to listen for Xiaozhi Commands
+import asyncio
+asyncio.run(main())
