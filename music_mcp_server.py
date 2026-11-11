@@ -42,4 +42,3 @@ async def resolve_music_url(query: str, artist: str = "") -> dict:
 
 if __name__ == "__main__":
     mcp.run()
-
