@@ -8,6 +8,7 @@ curl-cffi>=0.13.0,<1
 Pillow>=10.4.0,<13
 pypinyin>=0.55.0,<1
 yt-dlp>=2026.3.3
+tinytuya
 youtube-search-python
 fastmcp
 websockets
